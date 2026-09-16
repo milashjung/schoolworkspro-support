@@ -202,7 +202,7 @@
       display: grid;
 
       grid-template-columns:
-        2fr 1fr 1fr auto;
+        2fr 1fr 1fr auto auto;
 
       gap: 12px;
 
@@ -1062,6 +1062,15 @@
       onclick="clearFilters()"
     >
       Clear
+
+    </button>
+
+
+    <button
+      class="primary-btn"
+      onclick="exportTicketsCSV()"
+    >
+      ⬇ Export CSV
 
     </button>
 
@@ -2787,6 +2796,83 @@ function showToast(
     },
     4000
   );
+
+}
+
+
+/* =====================================================
+   EXPORT ALL TICKETS TO CSV
+===================================================== */
+
+function csvCell(value) {
+
+  const text = String(
+    value === null || value === undefined ? "" : value
+  ).replace(/"/g, '""');
+
+  return '"' + text + '"';
+
+}
+
+function exportTicketsCSV() {
+
+  if (!allTickets || allTickets.length === 0) {
+
+    showToast("No tickets loaded yet.");
+    return;
+
+  }
+
+  const headers = [
+    "Ticket Number", "Name", "Role", "School", "Category",
+    "Priority", "Subject", "Description", "Status",
+    "Client Response", "Created At", "Updated At", "Notes"
+  ];
+
+  const rows = allTickets.map(function(ticket) {
+
+    const notes = Array.isArray(ticket.notes)
+      ? ticket.notes.map(function(n) {
+          return formatDate(n.createdAt) + ": " + (n.text || "");
+        }).join(" | ")
+      : "";
+
+    return [
+      ticket.ticketNumber,
+      ticket.name,
+      ticket.role,
+      ticket.school,
+      ticket.category,
+      ticket.priority,
+      ticket.subject,
+      ticket.description,
+      ticket.status,
+      ticket.clientResponse,
+      formatDate(ticket.createdAt),
+      formatDate(ticket.updatedAt),
+      notes
+    ];
+
+  });
+
+  const csv = [headers, ...rows]
+    .map(function(row) {
+      return row.map(csvCell).join(",");
+    })
+    .join("\r\n");
+
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "schoolworkspro-tickets-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast("Exported " + allTickets.length + " tickets to CSV.");
 
 }
 
